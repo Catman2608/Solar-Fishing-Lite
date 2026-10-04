@@ -1,29 +1,142 @@
-# Solar Fishing Lite V1.5
-## Build: August 26th Config Management
+# License
 
-# YOU MAY:
-    - Use this macro for your own personal use.
-    - Read the source and reuse PARTS of it in your own projects, provided that "Catman2608" is
-    credited visibly somewhere in that project's user interface.
+This project is licensed under the GNU GPL v3.
 
-# YOU MAY NOT:
-    - Redistribute this macro, modified or unmodified, in whole or in substantial part.
-    - Publish a modified build of it, or present it as your own work.
-    - Remove, hide or alter the credits shown in the About tab.
-    - Sell it, or put it behind payment, subscription or paid access of any kind.
+You are free to study, modify, and redistribute this software. If you distribute a project containing code from this repository, the resulting project must also be released under the GPL v3, with its source code made available.
 
-# PORTIONS FROM OTHER PROJECTS
-    Arrow Estimation Code (estimates bar from arrows) and Perfect Cast 
-    is adapted from IRUS COMET and IRUS IDIOTPROOF by AsphaltCake.
-    Source:  https://www.youtube.com/@AsphaltCake
-    Those portions remain subject to AsphaltCake's own terms, which permit sharing
-    modifications with attribution. The restrictions above apply to Catman2608's original work
-    and cannot and do not override AsphaltCake's terms for their part.
+# Solar Fishing Lite
 
-    Changes made to that method in this macro: reimplemented in AutoHotkey v1 driven by
-    AHK PixelSearch and changed fallback method.
+Pre-built versions are available for supported platforms on the official releases page:
 
-# NO WARRANTY
-    Provided "as is", without warranty of any kind. Automating a game may breach its rules.
-    You use this at your own risk, and the author accepts no responsibility for any
-    consequence to your account.
+[Official Downloads / Releases](https://sites.google.com/view/icf-automation-network/downloads?authuser=0)
+
+If a pre-built version is not available for your system, follow the source installation guide below.
+
+# Project Environment Setup Guide
+
+## 📋 Overview
+
+This guide walks through setting up Python and all required modules for running the project. The application uses GUI automation, OCR, screen capture, and cross-platform OS features.
+
+---
+
+## 1️⃣ Prerequisites
+
+- **OS**:
+  - Windows (fully supported through the AutoHotKey version)
+  - macOS (fully supported)
+  - Linux (experimental / manual setup only)
+- **Administrator/Root access** may be needed for certain system-level operations
+- **Internet connection** for downloading packages
+
+---
+
+## 2️⃣ Install Python (macOS and Linux)
+
+### Option A: Using the Official Installer (Recommended)
+1. Go to [python.org/downloads](https://www.python.org/downloads/)
+2. Download and run the installer
+3. ✅ **Important**: Check *"Add Python to PATH"* during installation
+
+### Option B: Using Homebrew (macOS only)
+```bash
+# Install via official website, or with homebrew if using a script:
+python -m ensurepip --upgrade  # pip may not be installed by default on macOS
+```
+
+### Verify Installation
+Open Terminal/Command Prompt and run:
+```bash
+python --version
+# or
+python3 --version
+```
+Expected output: `Python 3.8+`
+
+---
+
+## 3️⃣ Install Required Modules (macOS and Linux)
+
+Run this command in order to download the required libraries:
+
+```bash
+pip install pywebview numpy mss pytesseract pynput requests opencv-python
+```
+If the command above fails, try using pip3 instead:
+```bash
+pip3 install pywebview numpy mss pytesseract pynput requests opencv-python
+```
+
+### Complete Package List Reference
+| Module | Command | Purpose |
+|--------|---------|---------|
+| `webview` | `pip install pywebview` | GUI window creation |
+| `numpy` | `pip install numpy` | Numerical operations, image arrays |
+| `mss` | `pip install mss` | Screenshot capture (multi-screen support) |
+| `pynput` | `pip install pynput` | Keyboard/mouse automation & listening |
+| `requests` | `pip install requests` | Discord API calls |
+
+---
+
+
+## 4️⃣ Platform-Specific Setup
+
+### 🐧 Linux — Experimental Support
+
+Linux is supported for running from source, but pre-compiled builds may not be available for every distribution.
+
+Additional requirements may be needed:
+
+#### Ubuntu/Debian example:
+
+```bash
+sudo apt update
+sudo apt install python3 python3-venv python3-tk tesseract-ocr
+```
+
+---
+
+## 5️⃣ Verify Installation (macOS and Linux)
+
+Create a test script `test_imports.py`:
+
+```python
+import webview, json, os, re, time, sys
+from tkinter import messagebox
+
+from pynput import keyboard, mouse
+from pynput.keyboard import Controller as KeyboardController
+from pynput.mouse import Controller as MouseController, Button
+
+import numpy as np, mss
+if sys.platform == "win32":
+    import ctypes, wintypes
+
+elif sys.platform == "darwin":
+    from Quartz import NSScreen
+
+elif sys.platform.startswith("linux"):
+    from Xlib import X, XK, display as Xdisplay
+
+import requests, io
+
+print("✅ All modules imported successfully!")
+```
+
+Run it with `python test_imports.py` — no errors means your setup is complete.
+
+---
+
+## 6️⃣ Windows installation guide
+Windows doesn't use the Python version; it instead uses another AutoHotKey branch.
+Step 1: Install AutoHotKey V1.1 (NOT V2) at https://www.autohotkey.com
+Step 2: Double-click the Solar Fishing Lite.ahk file
+
+---
+
+## 7️⃣ Troubleshooting Quick Fixes
+
+| Error | Solution |
+|-------|----------|
+| `_tkinter.TclError: No such file or directory` | Install tkinter: `pip install tkinter` (macOS) or reinstall Python with "Add to PATH" checked |
+| Permission denied on screenshot/capture | Run the script as Administrator (Windows) or with elevated privileges (macOS) |

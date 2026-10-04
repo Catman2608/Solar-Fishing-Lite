@@ -1,5 +1,5 @@
-const APP_VERSION = "5.0";
-const BETA_VERSION = "2";
+const APP_VERSION = "1.01";
+const BETA_VERSION = "0";
 const DEVELOPER = "Catman2608";
 let currentConfig = null;
 const validHexColor = /^#([0-9A-F]{3}|[0-9A-F]{6})$/i;
@@ -42,7 +42,7 @@ window.addEventListener("pywebviewready", async () => {
 // Top Bar
 function updateTopbarInfo() {
     const configSelect = document.getElementById("disabled");
-    const macroModeSelect = document.getElementById("enable_hotkeys");
+    const macroModeSelect = document.getElementById("automation_mode");
     
     const configNameEl = document.getElementById("topbar-config-name");
     const macroModeEl = document.getElementById("topbar-macro-mode");
@@ -158,6 +158,8 @@ function bindSettingsSync() {
         if (!element.id) return;
         // Skip config dropdown
         if (element.id === "disabled") return;
+        // Global Settings is handled separately so toggling can persist + propagate
+        if (element.id === "global_settings") return;
         element.addEventListener("change", syncSettings);
         element.addEventListener("input", syncSettings);
         // Add theme update listeners for color inputs
@@ -166,7 +168,28 @@ function bindSettingsSync() {
             element.addEventListener("input", updateAccentColor);
         }
     });
+    bindGlobalSettingsToggle();
     bindColorPreviewInputs();
+}
+async function bindGlobalSettingsToggle() {
+    const globalEl = document.getElementById("global_settings");
+    if (!globalEl || globalEl.dataset.globalBound === "1") return;
+    globalEl.dataset.globalBound = "1";
+    globalEl.addEventListener("change", async () => {
+        try {
+            await syncSettings();
+            // Persist immediately so non-color settings are shared (or the flag is cleared)
+            await saveConfig();
+            if (globalEl.checked) {
+                setStatus("Global Settings on — non-color settings shared across configs");
+            } else {
+                setStatus("Global Settings off — configs keep independent settings");
+            }
+        } catch (err) {
+            console.error(err);
+            setStatus("Failed to update Global Settings");
+        }
+    });
 }
 async function switchConfig(newConfigName) {
     try {
@@ -199,7 +222,7 @@ async function saveConfig(configName = null) {
     }
     const settings = getSettings();
     const result =
-        await pywebview.api.save_config(
+        await pywebview.api.save_settings(
             configName,
             settings
         );
@@ -221,7 +244,7 @@ async function loadConfig(configName = null) {
         return;
     }
     const result =
-        await pywebview.api.load_config(
+        await pywebview.api.load_settings(
             configName
         );
     if (result.success) {
@@ -282,7 +305,7 @@ async function newConfig() {
     const name =
         prompt("Config name:");
     if (!name) return;
-    await pywebview.api.save_config(
+    await pywebview.api.save_settings(
         name,
         getSettings()
     );
@@ -427,30 +450,49 @@ async function exportConfig() {
 
 async function importConfig() {
     try {
-        const input = document.createElement("input");
-        input.type = "file";
-        input.accept = ".json,application/json";
+        const result = await pywebview.api.select_import_config();
 
-        input.onchange = async (event) => {
-            const file = event.target.files?.[0];
-            if (!file) return;
-
-            try {
-                const text = await file.text();
-                const settings = JSON.parse(text);
-
-                applySettings(settings);
-                await syncSettings();
-                await saveConfig();
-
-                setStatus(`Imported: ${file.name}`);
-            } catch (err) {
-                console.error(err);
-                setStatus("Invalid config file");
+        if (!result.success) {
+            if (result.cancelled) {
+                return;
             }
-        };
 
-        input.click();
+            console.error(result.error);
+            setStatus(`Error: "${result.error}"`);
+            return;
+        }
+
+        const defaultName = result.filename.replace(/\.json$/i, "");
+
+        const configName = window.prompt(
+            "Enter a name for the imported config:",
+            defaultName
+        );
+
+        if (configName === null) {
+            setStatus("Import cancelled");
+            return;
+        }
+
+        const trimmedName = configName.trim();
+
+        if (!trimmedName) {
+            setStatus("Invalid config name");
+            return;
+        }
+
+        const importResult = await pywebview.api.import_config(
+            trimmedName,
+            result.settings
+        );
+
+        await refreshConfigs();
+
+        if (importResult.success) {
+            setStatus(`Imported: ${trimmedName}`);
+        } else {
+            setStatus(`Error: "${importResult.error}"`);
+        }
     } catch (err) {
         console.error(err);
         setStatus("Import failed");
@@ -469,6 +511,9 @@ async function startEyedropper() {
 async function takeScreenshot() {
     setStatus("Error saving debug screenshots");
     await pywebview.api.take_debug_screenshot();
+}
+async function selectPoint() {
+    return;
 }
 async function openLink(link) {
     if (!link) {
@@ -716,7 +761,7 @@ async function startMacro() {
             "disabled"
         ).value;
     const settings = getSettings();
-    await pywebview.api.save_config(
+    await pywebview.api.save_settings(
         configName,
         settings
     );

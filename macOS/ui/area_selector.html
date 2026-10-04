@@ -86,6 +86,12 @@
         color: #fff;
     }
     .panel-actions button.primary:hover { background: #4a7fe8; }
+    .panel-actions button.active {
+        background: #2d8a5e;
+        border-color: #2d8a5e;
+        color: #fff;
+    }
+    .panel-actions button.active:hover { background: #349e6c; }
     #hint {
         position: fixed;
         bottom: 14px; left: 50%;
@@ -98,6 +104,7 @@
         border-radius: 20px;
         pointer-events: none;
         border: 1px solid rgba(255,255,255,0.08);
+        white-space: nowrap;
     }
 </style>
 </head>
@@ -113,7 +120,7 @@
         <div class="panel-actions">
             <button onclick="setAllVisible(true)">Show All</button>
             <button onclick="setAllVisible(false)">Hide All</button>
-            <button class="primary" onclick="saveAndClose()">Done (Esc)</button>
+            <button id="selectPointBtn" onclick="toggleSelectPoint()">Select Point</button>
         </div>
     </div>
 </div>
@@ -135,10 +142,16 @@ let drag = null;
 let lastIpc = 0;
 let screenshotImg = null;
 let screenshotReady = false;
+let selectPointMode = false;
 
 window.addEventListener("pywebviewready", () => {
     try {
-        pywebview.api.window_ready(window.screenX, window.screenY);
+        // Report CSS client size so Python can convert boxes in the same
+        // coordinate space the canvas uses (critical when display scale ≠ 100%).
+        pywebview.api.window_ready(
+            window.screenX, window.screenY,
+            window.innerWidth, window.innerHeight
+        );
     } catch (e) {}
     // Load frozen screenshot once the API is ready
     loadScreenshot();
@@ -187,19 +200,23 @@ function draw() {
         ctx.textBaseline = "bottom";
         ctx.fillStyle = color;
         ctx.fillText(label, b.x + b.w / 2, b.y - 5);
-        const points = [
-            [b.x, b.y], [b.x + b.w / 2, b.y], [b.x + b.w, b.y],
-            [b.x, b.y + b.h / 2], [b.x + b.w, b.y + b.h / 2],
-            [b.x, b.y + b.h], [b.x + b.w / 2, b.y + b.h], [b.x + b.w, b.y + b.h]
-        ];
-        ctx.fillStyle = "white";
-        ctx.strokeStyle = "rgba(0,0,0,.6)";
-        ctx.lineWidth = 1;
-        for (const [x, y] of points) ctx.fillRect(x - HANDLE / 2, y - HANDLE / 2, HANDLE, HANDLE);
+        // Hide resize handles in Select Point mode
+        if (!selectPointMode) {
+            const points = [
+                [b.x, b.y], [b.x + b.w / 2, b.y], [b.x + b.w, b.y],
+                [b.x, b.y + b.h / 2], [b.x + b.w, b.y + b.h / 2],
+                [b.x, b.y + b.h], [b.x + b.w / 2, b.y + b.h], [b.x + b.w, b.y + b.h]
+            ];
+            ctx.fillStyle = "white";
+            ctx.strokeStyle = "rgba(0,0,0,.6)";
+            ctx.lineWidth = 1;
+            for (const [x, y] of points) ctx.fillRect(x - HANDLE / 2, y - HANDLE / 2, HANDLE, HANDLE);
+        }
     }
 }
 
 function handleAt(x, y, b) {
+    if (selectPointMode) return null;
     const points = {
         nw: [b.x, b.y], n: [b.x + b.w / 2, b.y], ne: [b.x + b.w, b.y],
         w: [b.x, b.y + b.h / 2], e: [b.x + b.w, b.y + b.h / 2],
@@ -230,14 +247,69 @@ function cursorFor(handle) {
 
 function sendUpdate(x, y) {
     const now = Date.now();
-    if (now - lastIpc < 40) return;
+    if (now - lastIpc < 250) return;
     lastIpc = now;
     if (window.pywebview && pywebview.api && pywebview.api.on_mouse_move)
         pywebview.api.on_mouse_move(x, y, JSON.parse(JSON.stringify(boxes)));
 }
 
+function reportPoint(name, x, y) {
+    let xr, yr, reportName;
+    const b = name && boxes[name];
+    if (b && b.w && b.h) {
+        // Ratio relative to the clicked area box
+        reportName = name;
+        xr = Math.max(0, Math.min(1, (x - b.x) / b.w));
+        yr = Math.max(0, Math.min(1, (y - b.y) / b.h));
+    } else {
+        // No area under the click → full-screen (viewport) ratios 0–1
+        reportName = "screen";
+        const w = window.innerWidth || 1;
+        const h = window.innerHeight || 1;
+        xr = Math.max(0, Math.min(1, x / w));
+        yr = Math.max(0, Math.min(1, y / h));
+    }
+    if (window.pywebview && pywebview.api && pywebview.api.on_point_select) {
+        try {
+            pywebview.api.on_point_select(reportName, xr, yr);
+        } catch (e) {}
+    }
+}
+
+function updateHint() {
+    const hint = document.getElementById("hint");
+    if (selectPointMode) {
+        hint.textContent = "Select Point ON · Click area or empty space for ratios & close · Esc / F6 to save & close · 1-9 toggle";
+    } else {
+        hint.textContent = "Drag boxes · Resize handles · Esc / F6 to save & close · 1-9 toggle areas";
+    }
+}
+
+function toggleSelectPoint() {
+    selectPointMode = !selectPointMode;
+    drag = null;
+    const btn = document.getElementById("selectPointBtn");
+    if (selectPointMode) {
+        btn.classList.add("active");
+        btn.textContent = "Select Point ✓";
+        canvas.style.cursor = "crosshair";
+    } else {
+        btn.classList.remove("active");
+        btn.textContent = "Select Point";
+        canvas.style.cursor = "default";
+    }
+    updateHint();
+    draw();
+}
+
 canvas.addEventListener("mousemove", e => {
     const x = e.clientX, y = e.clientY;
+    if (selectPointMode) {
+        canvas.style.cursor = "crosshair";
+        // Still stream live hover ratios via existing mouse-move path
+        sendUpdate(x, y);
+        return;
+    }
     if (drag) {
         const b = boxes[drag.name], o = drag.original;
         const dx = x - drag.x, dy = y - drag.y, h = drag.handle;
@@ -263,7 +335,15 @@ canvas.addEventListener("mousedown", e => {
     if (e.button !== 0) return;
     if (e.target.closest && e.target.closest("#panel")) return;
     const name = boxAt(e.clientX, e.clientY);
+
+    // Select Point mode: report ratios (area or full screen), do not drag
+    if (selectPointMode) {
+        reportPoint(name, e.clientX, e.clientY);
+        return;
+    }
+
     if (!name) return;
+
     const b = boxes[name];
     drag = {
         name,
@@ -344,6 +424,12 @@ document.addEventListener("keydown", e => {
         saveAndClose();
         return;
     }
+    // P toggles Select Point mode
+    if (e.key === "p" || e.key === "P") {
+        e.preventDefault();
+        toggleSelectPoint();
+        return;
+    }
     const idx = parseInt(e.key, 10) - 1;
     if (idx >= 0 && idx < AREA_ORDER.length) {
         const name = AREA_ORDER[idx];
@@ -366,62 +452,6 @@ function applyConfig(cfg) {
         if (visible[name] === undefined) visible[name] = true;
     }
     buildPanel();
-}
-
-function loadScreenshot() {
-    if (!window.pywebview || !pywebview.api) return;
-    pywebview.api.get_screenshot_data().then(dataUrl => {
-        if (!dataUrl) {
-            screenshotReady = false;
-            draw();
-            return;
-        }
-        const img = new Image();
-        img.onload = () => {
-            screenshotImg = img;
-            screenshotReady = true;
-            draw();
-        };
-        img.onerror = () => {
-            screenshotReady = false;
-            draw();
-        };
-        img.src = dataUrl;
-    }).catch(() => {
-        screenshotReady = false;
-        draw();
-    });
-}
-
-function ready() {
-    if (!(window.pywebview && pywebview.api)) return;
-    if (pywebview.api.window_ready) pywebview.api.window_ready(window.screenX, window.screenY);
-
-    const load = async () => {
-        try {
-            if (pywebview.api.get_area_config) {
-                const cfg = await pywebview.api.get_area_config();
-                applyConfig(cfg);
-            }
-            if (pywebview.api.get_areas) {
-                const data = await pywebview.api.get_areas();
-                boxes = data || {};
-                for (const name of AREA_ORDER) {
-                    if (boxes[name]) {
-                        boxes[name].w = boxes[name].width;
-                        boxes[name].h = boxes[name].height;
-                        delete boxes[name].width;
-                        delete boxes[name].height;
-                    }
-                }
-            }
-            draw();
-        } catch (e) {
-            console.error("Error loading areas:", e);
-            draw();
-        }
-    };
-    load();
 }
 
 function loadScreenshot() {
@@ -452,12 +482,61 @@ function loadScreenshot() {
     });
 }
 
+async function reportViewSize() {
+    if (!(window.pywebview && pywebview.api && pywebview.api.window_ready)) return;
+    try {
+        // Await so Python records _view_w/_view_h before any get_areas call.
+        await pywebview.api.window_ready(
+            window.screenX, window.screenY,
+            window.innerWidth, window.innerHeight
+        );
+    } catch (e) {}
+}
+
+function ready() {
+    if (!(window.pywebview && pywebview.api)) return;
+
+    const load = async () => {
+        try {
+            // Report CSS client size first (and await) so get_areas converts
+            // with the same coordinate space the canvas uses. Re-report in
+            // case maximize / DPI changed innerWidth after first paint.
+            await reportViewSize();
+            if (pywebview.api.get_area_config) {
+                const cfg = await pywebview.api.get_area_config();
+                applyConfig(cfg);
+            }
+            if (pywebview.api.get_areas) {
+                const data = await pywebview.api.get_areas();
+                boxes = data || {};
+                for (const name of AREA_ORDER) {
+                    if (boxes[name]) {
+                        boxes[name].w = boxes[name].width;
+                        boxes[name].h = boxes[name].height;
+                        delete boxes[name].width;
+                        delete boxes[name].height;
+                    }
+                }
+            }
+            draw();
+        } catch (e) {
+            console.error("Error loading areas:", e);
+            draw();
+        }
+    };
+    load();
+}
+
 // Called from Python after window_ready as a secondary trigger
 window.__applyScreenshot = function () {
     loadScreenshot();
 };
 
-window.addEventListener("resize", resizeCanvas);
+window.addEventListener("resize", () => {
+    resizeCanvas();
+    // Keep Python's view size in sync if the window is resized / maximized.
+    reportViewSize();
+});
 window.addEventListener("pywebviewready", ready);
 resizeCanvas();
 </script>

@@ -1,10 +1,10 @@
 {
-    "last_config": "test",
+    "last_config": "Default",
     "bar_areas": {
         "shake": {
             "x": 0.1041,
             "y": 0.0925,
-            "width": 0.7917,
+            "width": 0.7916999999999998,
             "height": 0.6963
         },
         "fish": {
@@ -14,10 +14,13 @@
             "height": 0.0389
         },
         "friend": {
-            "x": 0.004600000000000001,
+            "x": 0.0046,
             "y": 0.8583,
             "width": 0.0355,
             "height": 0.0817
         }
-    }
+    },
+    "start_key": "F5",
+    "area_selector_key": "F6",
+    "stop_key": "F7"
 }

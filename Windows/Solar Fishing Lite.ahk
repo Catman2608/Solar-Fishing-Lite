@@ -1,7 +1,7 @@
 ﻿;====================================================================================================;
 ;
-;   Solar Fishing Lite V1.52
-;   Build: September 2nd Ini to Json
+;   Solar Fishing Lite V1.53
+;   Build: September 12th Perfect Cast Prediction
 ;
 ;   YOU MAY:
 ;     - Use this macro for your own personal use.
@@ -23,7 +23,9 @@
 ;     and cannot and do not override AsphaltCake's terms for their part.
 ;
 ;     Changes made to that method in this macro: reimplemented in AutoHotkey v1; driven by
-;     AHK PixelSearch and changed fallback method.
+;     AHK PixelSearch. Perfect Cast uses SolarFishingV5 prediction-mode fill tracking
+;     (green bar + white marker percentage, peak capture, predicted release).
+;     Simple and velocity perfect-cast methods from V5 are not included.
 ;
 ;   NO WARRANTY
 ;     Provided "as is", without warranty of any kind. Automating a game may breach its rules.
@@ -51,14 +53,13 @@ Gui, Color, 0x1D1D1D
 Gui, Font, s13 cFFFFFF Bold, Segoe UI
 Gui, Add, Text, x30 y10, Solar Fishing Lite
 Gui, Font, s9 cFFFFFF Norm, Segoe UI
-Gui, Add, Text, x180 y15, V1.52 - Made by Catman2608
+Gui, Add, Text, x180 y15, V1.53 - Made by Catman2608
 Gui, Add, Tab2, x20 y40 w650 h550, Overview|Automation|Fishing Tools|About
 
 ; Config List
 configs := ""
 
-Loop, Files, %A_ScriptDir%\configs\*.ini
-{
+Loop, Files, %A_ScriptDir%\configs\*.ini {
     SplitPath, A_LoopFileName,,, Extension, FileName
     configs .= FileName "|"
 }
@@ -269,34 +270,44 @@ Gui, Add, Text, x40 y80, About
 
 ; About section
 Gui, Font, s9 cFFFFFF Bold
-Gui, Add, GroupBox, x40 y110 w600 h160, About this macro
+Gui, Add, GroupBox, x40 y110 w600 h220, About this macro
 Gui, Font, s9 cFFFFFF Norm
 
-Gui, Add, Picture, x60 y130 w48 h48, % mainDir "images\\icon.png"
+Gui, Add, Picture, x60 y130 w48 h48, % mainDir "images\\Catman.png"
 Gui, Font, s9 cFFD700 Bold
 Gui, Add, Text, x120 y130 w350, Catman2608
 Gui, Font, s9 cFFC0CB Bold
-Gui, Add, Text, x120 y150 w350, Solar Fishing Lite V1.52
+Gui, Add, Text, x120 y150 w350, Head Developer
+Gui, Font, s9 cFFFFFF Norm
+
+Gui, Add, Picture, x60 y190 w48 h48, % mainDir "images\\AsphaltCake.png"
+Gui, Font, s9 cFFD700 Bold
+Gui, Add, Text, x120 y190 w350, Asphalt Cake
+Gui, Font, s9 cFFC0CB Bold
+Gui, Add, Text, x120 y210 w350, Arrow Estimation and Perfect Cast code
 Gui, Font, s9 cFFFFFF Norm
 
 ; Disclaimer section
 Gui, Font, s9 cFF4444 Bold
-Gui, Add, Text, x60 y190 w550, IMPORTANT DISCLAIMER: 
+Gui, Add, Text, x60 y250 w550, IMPORTANT DISCLAIMER: 
 Gui, Font, s9 cFFFFFF Norm
-Gui, Add, Text, x60 y210 w550, Any person claiming to be part of this project or its development, other than Catman2608
-Gui, Add, Text, x60 y230 w550, is most likely lying. Be cautious of fake contributors or impersonators.
+Gui, Add, Text, x60 y270 w550, Any person claiming to be part of this project or its development, other than the people above
+Gui, Add, Text, x60 y290 w550, is most likely lying. Be cautious of fake contributors or impersonators.
 
 ; Resources section
 Gui, Font, s9 cFFFFFF Bold
-Gui, Add, GroupBox, x40 y290 w600 h180, Resources
+Gui, Add, GroupBox, x40 y350 w600 h180, Resources
 Gui, Font, s9 cFFFFFF Norm
 
 ; Links with proper spacing
-Gui, Add, Link, x60 y310 w560, <a href="https://discord.com/invite/aMZY8yrF8r">Join Solar Macros Discord Server</a>
-Gui, Add, Link, x60 y340 w560, <a href="https://www.youtube.com/@HexaTitanGaming/">Official YouTube Channel</a>
-Gui, Add, Link, x60 y370 w560, <a href="https://catman2608.github.io/PyWare-Backend/">Official Solar Website</a>
-Gui, Add, Link, x60 y400 w560, <a href="https://docs.google.com/document/d/1WwWWMR-eN-R-GO42IioToHpWTgiXkLoiNE_4NeE-GsU">Upcoming Features</a>
-Gui, Add, Link, x60 y430 w560, <a href="https://docs.google.com/document/d/1ZTDFi4jwSnJE1jq3bT1yNnnX3V-ohEOvXNOm6P1dPNU/edit?tab=t.0">Settings Guide</a>
+Gui, Add, Link, x60 y370, <a href="https://discord.com/invite/aMZY8yrF8r">Join Solar Macros Discord Server</a>
+Gui, Add, Link, x60 y400, <a href="https://www.youtube.com/@HexaTitanGaming/">Catman's YouTube Channel</a>
+Gui, Add, Link, x60 y430, <a href="https://catman2608.github.io/PyWare-Backend/">Catman's Solar Macro Website</a>
+Gui, Add, Link, x60 y460, <a href="https://docs.google.com/document/d/1WwWWMR-eN-R-GO42IioToHpWTgiXkLoiNE_4NeE-GsU">Upcoming Features</a>
+Gui, Add, Link, x60 y490, <a href="https://docs.google.com/document/d/1ZTDFi4jwSnJE1jq3bT1yNnnX3V-ohEOvXNOm6P1dPNU/edit?tab=t.0">Settings Guide</a>
+
+Gui, Add, Link, x370 y370, <a href="https://discord.com/invite/vKVBbyfHTD">Join Asphalt Cake's Discord Server</a>
+Gui, Add, Link, x370 y400, <a href="https://www.youtube.com/@AsphaltCake/">Asphalt Cake's YouTube Channel</a>
 
 ; Show Window and load settings
 LoadSettings()
@@ -369,7 +380,7 @@ ImportConfig:
     }
 
     ; Ask the user for the config name
-    InputBox, ConfigName, Import Config, Enter a name for this configuration:, , 300, 150
+    InputBox, ConfigName, Import Config, Enter a name for this configuration:,, 300, 150
 
     if (ErrorLevel) {
         ; User cancelled
@@ -983,7 +994,7 @@ EnableHotkeys:
         Hotkey, %StopKey%, StopMacro, Off
 
         ToolTip, Hotkeys %StartKey% and %StopKey% are Disabled, %TooltipX%, %Tooltip5%, 5
-        ToolTip, , %TooltipX%, %Tooltip6%, 6
+        ToolTip,, %TooltipX%, %Tooltip6%, 6
     }
 return
 
@@ -1057,7 +1068,7 @@ Calculations:
     ToolTip, %WindowWidth% %WindowHeight%, %WindowWidth%, %WindowHeight%, 18
 
     ToolTip, Made By Catman2608, %ToolTipX%, %ToolTip1%, 1
-    ToolTip, Solar Fishing V1.52 Lite, %ToolTipX%, %ToolTip2%, 2
+    ToolTip, Solar Fishing V1.53 Lite, %ToolTipX%, %ToolTip2%, 2
     ToolTip, Runtime: 0h 0m 0s, %ToolTipX%, %ToolTip3%, 3
 return
 
@@ -1141,94 +1152,224 @@ Loop {
 return
 
 PerfectCast:
-    IsInitialRun := True
+    ; Prediction-mode perfect cast (SolarFishingV5._execute_cast_perfect "prediction").
+    ; Do not port V5 simple or velocity methods here.
     TimeoutDuration := CastTimeout / CastScanDelay
-    GreenAreaLeft := 0
-    GreenAreaTop := 0
-    GreenAreaRight := 1
-    GreenAreaBottom := 1
+    if (TimeoutDuration < 1) {
+        TimeoutDuration := 1
+    }
+
     GreenPadding := 50
-    GreenFullScan := True
-    GreenFound := False
-    InitialGreenX := 0
-    InitialGreenY := 0
-    InitialWhiteX := 0
-    InitialWhiteY := 0
-    PredictedInitialWhiteX := 0
-    PredictedInitialWhiteY := 0
-    LastPerfectCastPercentage := 0
-    MaximumPercentage := 1.1
-    ; Hold cast
+    IsGreenTracking := False
+    GreenX := 0
+    GreenY := 0
+    GreenRight := 0
+    GreenBottom := 0
+
+    LastFillPercentage := ""
+    LastFrameTime := 0
+    ReachedBottom5Percent := True
+    HighestCastPercentage := 100
+    HighestCastPercentageUpdated := False
+
+    MaxSpeedSamples := 20
+    SpeedSampleCount := 0
+    SpeedSampleIndex := 0
+    Loop, %MaxSpeedSamples% {
+        SpeedSample%A_Index% := 0
+    }
+
+    CastStartTick := A_TickCount
     Send, {LButton down}
+
     Loop, %TimeoutDuration% {
-        ; Perfect Cast Detection
-        if (GreenFullScan = False) {
-            PixelSearch, GreenX, GreenY, GreenAreaLeft, GreenAreaTop, GreenAreaRight, GreenAreaBottom, %GreenCastColor%, %GreenCastTolerance%, Fast
-            if (ErrorLevel = 0) {
-                GreenFullScan := False
-                GreenFound := True
-            } else {
-                GreenFullScan := True
-                GreenFound := False
-            }
-        }
-        if (GreenFullScan = True) {
-            PixelSearch, GreenX, GreenY, ClickShakeLeft, ClickShakeTop, ClickShakeRight, ClickShakeBottom, %GreenCastColor%, %GreenCastTolerance%, Fast
-            if (ErrorLevel = 0) {
-                GreenFullScan := False
-                GreenFound := True
-            } else {
-                GreenFound := False
-            }
-        }
-        if (GreenFound = True) {
-            GreenAreaLeft := GreenX - GreenPadding
-            GreenAreaTop := GreenY - GreenPadding
-            GreenAreaRight := GreenX + GreenPadding
-            GreenAreaBottom := GreenY - GreenPadding
-        }
-        PixelSearch, WhiteX, WhiteY, GreenAreaLeft, GreenAreaTop, GreenAreaRight, ClickShakeBottom, %WhiteCastColor%, %WhiteCastTolerance%, Fast
-        if (ErrorLevel = 0) {
-            WhiteFound := True
-        } else {
-            WhiteFound := False
-        }
-        if (IsInitialRun = True) {
-            InitialGreenX := GreenX
-            InitialGreenY := GreenY
-            InitialWhiteX := WhiteX
-            InitialWhiteY := WhiteY
-        }
-        ; Perfect Cast Logic
-        TotalGreenDistanceX := GreenX - InitialGreenX
-        TotalGreenDistanceY := GreenY - InitialGreenY
-        PredictedInitialWhiteX := InitialWhiteX - TotalGreenDistanceX
-        PredictedInitialWhiteY := InitialWhiteY - TotalGreenDistanceY
-        PerfectCastPercentageMultiplier := PredictedInitialWhiteY - GreenY
-        PerfectCastCurrentPercentage := PredictedInitialWhiteY - WhiteY
-        PerfectCastPercentage := PerfectCastCurrentPercentage / PerfectCastPercentageMultiplier
-        PercentageChange := LastPerfectCastPercentage - PerfectCastPercentage
-        if (PercentageChange > 0) {
-            ; Going Up AND perfect cast percentage is higher
-            if (PerfectCastPercentage > 80) {
-                MaximumPercentage := PerfectCastPercentage
-            }
-        }
-        ; Perfect Cast Release
-        if (PerfectCastPercentage > MaximumPercentage) {
+        if (A_TickCount - CastStartTick >= CastTimeout) {
             Break
         }
-        ; ToolTips
-        ToolTip, %MaximumPercentage%, %GreenX% + 10, %GreenY%, 6
-        ToolTip, %PerfectCastPercentage%, %WhiteX% + 10, %WhiteY%, 7
-        ToolTip, 0, %InitialWhiteX% + 10, %InitialWhiteY%, 7
-        ; End of perfect cast
-        IsInitialRun := False
-        LastPerfectCastPercentage := PerfectCastPercentage
+
+        ; Green detection: track a padded box, fall back to a full shake-area scan.
+        GreenFound := False
+        if (IsGreenTracking = True) {
+            AreaLeft := GreenX - GreenPadding
+            AreaTop := GreenY - GreenPadding
+            AreaRight := GreenRight + GreenPadding
+            AreaBottom := GreenBottom + GreenPadding
+            if (AreaLeft < ClickShakeLeft) {
+                AreaLeft := ClickShakeLeft
+            }
+            if (AreaTop < ClickShakeTop) {
+                AreaTop := ClickShakeTop
+            }
+            if (AreaRight > ClickShakeRight) {
+                AreaRight := ClickShakeRight
+            }
+            if (AreaBottom > ClickShakeBottom) {
+                AreaBottom := ClickShakeBottom
+            }
+
+            PixelSearch, GX, GY, AreaLeft, AreaTop, AreaRight, AreaBottom, %GreenCastColor%, %GreenCastTolerance%, Fast
+            if (ErrorLevel = 0) {
+                PixelSearch, GR, GB, AreaRight, AreaBottom, AreaLeft, AreaTop, %GreenCastColor%, %GreenCastTolerance%, Fast
+                if (ErrorLevel != 0) {
+                    GR := GX
+                    GB := GY
+                }
+                GreenX := GX
+                GreenY := GY
+                GreenRight := GR
+                GreenBottom := GB
+                GreenFound := True
+            } else {
+                IsGreenTracking := False
+                SpeedSampleCount := 0
+                SpeedSampleIndex := 0
+                Sleep, %CastScanDelay%
+                Continue
+            }
+        }
+
+        if (IsGreenTracking = False) {
+            PixelSearch, GX, GY, ClickShakeLeft, ClickShakeTop, ClickShakeRight, ClickShakeBottom, %GreenCastColor%, %GreenCastTolerance%, Fast
+            if (ErrorLevel = 0) {
+                PixelSearch, GR, GB, ClickShakeRight, ClickShakeBottom, ClickShakeLeft, ClickShakeTop, %GreenCastColor%, %GreenCastTolerance%, Fast
+                if (ErrorLevel != 0) {
+                    GR := GX
+                    GB := GY
+                }
+                GreenX := GX
+                GreenY := GY
+                GreenRight := GR
+                GreenBottom := GB
+                IsGreenTracking := True
+                GreenFound := True
+            } else {
+                ToolTip, Green: none (full scan), %ToolTipX%, %ToolTip8%, 8
+                Sleep, %CastScanDelay%
+                Continue
+            }
+        }
+
+        ; White marker: scan the column under the green bar center, same as V5.
+        GreenCenterX := Floor((GreenX + GreenRight) / 2)
+        if (GreenCenterX < ClickShakeLeft) {
+            GreenCenterX := ClickShakeLeft
+        }
+        if (GreenCenterX > ClickShakeRight) {
+            GreenCenterX := ClickShakeRight
+        }
+
+        ScanStartY := GreenY
+        if (ScanStartY < ClickShakeTop) {
+            ScanStartY := ClickShakeTop
+        }
+
+        PixelSearch, WhiteX, WhiteTop, GreenCenterX, ScanStartY, GreenCenterX, ClickShakeBottom, %WhiteCastColor%, %WhiteCastTolerance%
+        if (ErrorLevel != 0) {
+            ToolTip, White: none, %ToolTipX%, %ToolTip9%, 9
+            Sleep, %CastScanDelay%
+            Continue
+        }
+
+        PixelSearch, WhiteX2, WhiteBottom, GreenCenterX, ClickShakeBottom, GreenCenterX, ScanStartY, %WhiteCastColor%, %WhiteCastTolerance%
+        if (ErrorLevel != 0) {
+            WhiteBottom := WhiteTop
+        }
+
+        TotalDistance := WhiteBottom - GreenY
+        CurrentDistance := WhiteTop - GreenY
+        if (TotalDistance <= 0) {
+            ToolTip, White: invalid distance, %ToolTipX%, %ToolTip9%, 9
+            Sleep, %CastScanDelay%
+            Continue
+        }
+
+        ActualFillPercentage := (1 - (CurrentDistance / TotalDistance)) * 100
+        CurrentTime := A_TickCount
+        FillSpeed := 0.0
+        PositionOffsetPercent := 0.0
+
+        if (LastFillPercentage != "" && LastFrameTime != 0) {
+            TimeDeltaMs := CurrentTime - LastFrameTime
+            if (TimeDeltaMs > 0) {
+                FillChange := ActualFillPercentage - LastFillPercentage
+                if (FillChange < -50) {
+                    LastFillPercentage := ""
+                    LastFrameTime := 0
+                    ReachedBottom5Percent := False
+                    SpeedSampleCount := 0
+                    SpeedSampleIndex := 0
+                } else if (FillChange > 0) {
+                    InstantFillSpeed := FillChange / (TimeDeltaMs / 1000.0)
+                    SpeedSampleIndex += 1
+                    if (SpeedSampleIndex > MaxSpeedSamples) {
+                        SpeedSampleIndex := 1
+                    }
+                    SpeedSample%SpeedSampleIndex% := InstantFillSpeed
+                    if (SpeedSampleCount < MaxSpeedSamples) {
+                        SpeedSampleCount += 1
+                    }
+                }
+            }
+        }
+
+        if (SpeedSampleCount > 0) {
+            SpeedSum := 0
+            Loop, %SpeedSampleCount% {
+                SpeedSum += SpeedSample%A_Index%
+            }
+            FillSpeed := SpeedSum / SpeedSampleCount
+            BaseOffset := 1.5 * Ln(1 + FillSpeed / 25.0)
+            PositionOffsetPercent := BaseOffset
+            if (PositionOffsetPercent < 0) {
+                PositionOffsetPercent := 0
+            }
+            if (PositionOffsetPercent > 50) {
+                PositionOffsetPercent := 50
+            }
+        }
+
+        PredictedFillPercentage := ActualFillPercentage + PositionOffsetPercent
+        BottomThreshold := 5.0 + PositionOffsetPercent
+        if (PredictedFillPercentage <= BottomThreshold && ReachedBottom5Percent = False) {
+            ReachedBottom5Percent := True
+            LastFillPercentage := ""
+            LastFrameTime := 0
+            SpeedSampleCount := 0
+            SpeedSampleIndex := 0
+        }
+
+        if (LastFillPercentage != "") {
+            CastVelocity := ActualFillPercentage - LastFillPercentage
+        } else {
+            CastVelocity := 0.1
+        }
+
+        if (CastVelocity < 0) {
+            if (HighestCastPercentageUpdated = False) {
+                HighestCastPercentage := LastFillPercentage
+                HighestCastPercentageUpdated := True
+                Sleep, 200
+            }
+        }
+
+        ReleaseThreshold := HighestCastPercentage
+        ToolTip, Green: %GreenCenterX% %GreenY%, %ToolTipX%, %ToolTip8%, 8
+        ToolTip, Pred: %PredictedFillPercentage%, %ToolTipX%, %ToolTip9%, 9
+        ToolTip, Peak: %HighestCastPercentage%, %ToolTipX%, %ToolTip10%, 10
+
+        if (ReachedBottom5Percent = True && PredictedFillPercentage >= ReleaseThreshold) {
+            Break
+        }
+
+        LastFillPercentage := ActualFillPercentage
+        LastFrameTime := CurrentTime
         Sleep, %CastScanDelay%
-    }  ; Added missing closing brace
-    ; Fallback: Timer Limit Reached
+    }
+
     Send, {LButton up}
+    ToolTip,,,, 8
+    ToolTip,,,, 9
+    ToolTip,,,, 10
 return
 
 ShakeClick:

@@ -1643,7 +1643,7 @@ class Api:
             "green_cast_tolerance",
             "white_cast_color",
             "white_cast_tolerance",
-            "pinion_notes_color",
+            "green_cast_color",
             "pinion_notes_tolerance",
             "friends_color",
             "friends_tolerance",
@@ -2531,7 +2531,7 @@ class Api:
         shake_left, shake_top, shake_right, shake_bottom, _, shake_height = self.get_areas("shake")
         # Colors
         white_cast_color = self.vars["white_cast_color"]
-        pinion_notes_color = self.vars["green_cast_color"]
+        green_cast_color = self.vars["green_cast_color"]
         # Tolerance
         white_cast_tolerance = int(self.vars["white_cast_tolerance"])
         green_cast_tolerance = int(self.vars["green_cast_tolerance"])
@@ -2620,8 +2620,8 @@ class Api:
                 green_area_left = max(0, green_abs_left - green_padding)
                 green_area_right = min(shake_img.shape[1], green_abs_right + green_padding)
                 green_area = shake_img[green_area_top:green_area_bottom, green_area_left:green_area_right]
-                g_left, g_top = self.pixel_search(green_area, pinion_notes_color, green_cast_tolerance)
-                g_right, g_bottom = self.pixel_search(green_area, pinion_notes_color, green_cast_tolerance, 1)
+                g_left, g_top = self.pixel_search(green_area, green_cast_color, green_cast_tolerance)
+                g_right, g_bottom = self.pixel_search(green_area, green_cast_color, green_cast_tolerance, 1)
                 if None not in (g_left, g_top, g_right, g_bottom):
                     # Convert From Green_Area Coordinates To Shake_Img Coordinates
                     green_abs_left = g_left + green_area_left
@@ -2642,8 +2642,8 @@ class Api:
 
             if not is_green_tracking:
                 # Full Scan For Green
-                g_left, g_top = self.pixel_search(shake_img, pinion_notes_color, green_cast_tolerance)
-                g_right, g_bottom = self.pixel_search(shake_img, pinion_notes_color, green_cast_tolerance, 1)
+                g_left, g_top = self.pixel_search(shake_img, green_cast_color, green_cast_tolerance)
+                g_right, g_bottom = self.pixel_search(shake_img, green_cast_color, green_cast_tolerance, 1)
                 if None not in (g_left, g_top, g_right, g_bottom):
                     green_abs_left = g_left
                     green_abs_top = g_top
